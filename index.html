@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>FY26 M&C AI Adoption — Executive Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0b1020;
+    --panel: #131a30;
+    --panel-2: #1a2240;
+    --ink: #e6e9f5;
+    --muted: #9aa3c0;
+    --accent: #6ea8ff;
+    --accent-2: #7ef0c2;
+    --warn: #ffb86b;
+    --danger: #ff7a8a;
+    --grid: #2a335a;
+    --chip: #232c52;
+    --gold: #ffd66b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: linear-gradient(180deg, #070b1a 0%, #0b1020 100%);
+    color: var(--ink); min-height: 100vh;
+  }
+  header {
+    padding: 28px 36px 8px; display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:16px;
+  }
+  header h1 { margin:0; font-size: 26px; letter-spacing:-0.02em; }
+  header .eyebrow {
+    color: var(--accent-2); font-size: 11px; text-transform: uppercase; letter-spacing: .15em; font-weight: 600; margin-bottom: 6px;
+  }
+  header .sub { color: var(--muted); font-size: 13px; margin-top:4px; }
+
+  /* ============ EXECUTIVE SUMMARY (above the fold) ============ */
+  .exec-summary {
+    margin: 12px 36px 24px; padding: 24px 28px;
+    background: linear-gradient(135deg, rgba(110,168,255,.08), rgba(126,240,194,.05));
+    border: 1px solid var(--grid); border-radius: 16px;
+  }
+  .exec-summary .headline {
+    font-size: 22px; font-weight: 600; line-height: 1.35; margin: 0 0 14px;
+    color: var(--ink);
+  }
+  .exec-summary .headline .pos { color: var(--accent-2); }
+  .exec-summary .headline .neg { color: var(--warn); }
+
+  .summary-grid {
+    display:grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 18px;
+  }
+  @media (max-width: 700px) { .summary-grid { grid-template-columns: 1fr; } }
+  .summary-card {
+    background: rgba(11,16,32,.5); border: 1px solid var(--grid); border-radius: 12px; padding: 14px 16px;
+  }
+  .summary-card .label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
+  .summary-card .value { font-size: 26px; font-weight: 600; margin-top: 6px; }
+  .summary-card .ctx { font-size: 12px; margin-top: 4px; color: var(--muted); }
+  .summary-card .ctx.up { color: var(--accent-2); }
+  .summary-card .ctx.down { color: var(--warn); }
+
+  /* Goal gauge */
+  .goal-bar {
+    height: 8px; background: var(--grid); border-radius: 4px; overflow: hidden; margin-top: 10px; position:relative;
+  }
+  .goal-bar .fill {
+    height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  }
+  .goal-bar .target {
+    position:absolute; right:0; top:-2px; width:2px; height:12px; background: var(--gold);
+  }
+
+  /* Talking points */
+  .talking-points {
+    margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--grid);
+    display: grid; grid-template-columns: 1fr 1fr; gap: 14px 32px;
+  }
+  @media (max-width: 900px) { .talking-points { grid-template-columns: 1fr; } }
+  .tp { display:flex; gap: 12px; align-items: flex-start; font-size: 13px; line-height: 1.5; }
+  .tp .ico {
+    flex-shrink:0; width: 22px; height: 22px; border-radius: 50%; display:flex; align-items:center; justify-content:center;
+    font-size: 12px; font-weight: 700;
+  }
+  .tp.win .ico { background: rgba(126,240,194,.18); color: var(--accent-2); }
+  .tp.watch .ico { background: rgba(255,184,107,.18); color: var(--warn); }
+  .tp b { color: var(--ink); }
+
+  /* ============ TABS ============ */
+  nav.tabs {
+    display:flex; gap:6px; padding: 0 36px; border-bottom: 1px solid var(--grid); margin-bottom: 18px;
+  }
+  nav.tabs button {
+    background: transparent; border:none; color: var(--muted); padding: 12px 18px;
+    font-size: 13px; cursor:pointer; border-bottom: 2px solid transparent; font-weight:500;
+  }
+  nav.tabs button.active { color: var(--ink); border-bottom-color: var(--accent); }
+  nav.tabs button:hover:not(.active) { color: var(--ink); }
+
+  main { padding: 0 36px 60px; }
+  .view { display:none; }
+  .view.active { display:block; animation: fade .25s ease; }
+  @keyframes fade { from { opacity:0; transform: translateY(4px);} to { opacity:1; transform:none;} }
+
+  .grid-2 { display:grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .grid-3 { display:grid; grid-template-columns: 2fr 1fr; gap: 18px; }
+  @media (max-width: 1000px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+
+  .panel {
+    background: var(--panel); border: 1px solid var(--grid); border-radius: 14px; padding: 18px;
+  }
+  .panel h3 { margin: 0 0 8px; font-size: 15px; font-weight: 600; }
+  .panel .hint { color: var(--muted); font-size: 12px; margin-bottom: 12px; }
+  .chart-wrap { position:relative; height: 320px; }
+  .chart-wrap.tall { height: 420px; }
+
+  /* So-what callout */
+  .so-what {
+    background: rgba(126,240,194,.08); border-left: 3px solid var(--accent-2);
+    border-radius: 8px; padding: 10px 14px; margin-top: 12px;
+    font-size: 13px; line-height: 1.5;
+  }
+  .so-what b { color: var(--accent-2); }
+  .so-what.warn { background: rgba(255,184,107,.08); border-left-color: var(--warn); }
+  .so-what.warn b { color: var(--warn); }
+
+  /* Benchmark view */
+  .benchmark-controls {
+    display:flex; gap:10px; flex-wrap:wrap; margin-bottom: 14px; align-items:center;
+  }
+  .chip {
+    background: var(--chip); color: var(--ink); border:1px solid var(--grid); border-radius: 999px;
+    padding: 6px 12px; font-size: 12px; cursor:pointer; user-select:none;
+  }
+  .chip.active { background: var(--accent); color: #0b1020; border-color: var(--accent); font-weight:600; }
+  select, input[type=search] {
+    background: var(--panel-2); color: var(--ink); border: 1px solid var(--grid); border-radius: 8px;
+    padding: 7px 10px; font-size: 13px; min-width: 180px;
+  }
+  label.lbl { font-size: 12px; color: var(--muted); margin-right: 4px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--grid); }
+  th { color: var(--muted); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; cursor:pointer; }
+  th:hover { color: var(--ink); }
+  tbody tr:hover { background: rgba(110, 168, 255, 0.06); cursor:pointer; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .rate-bar {
+    display:inline-block; height: 6px; border-radius: 3px;
+    background: linear-gradient(90deg, var(--danger), var(--warn), var(--accent-2));
+    vertical-align: middle; margin-right: 8px;
+  }
+  .seg-badge {
+    display:inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight:600;
+  }
+  .seg-Platform { background: rgba(110,168,255,.15); color: #9cc3ff; }
+  .seg-Transformation { background: rgba(126,240,194,.15); color: #7ef0c2; }
+  .seg-GBSG { background: rgba(255,184,107,.15); color: #ffb86b; }
+  .seg-CG { background: rgba(255,122,138,.15); color: #ff7a8a; }
+  .seg-Other { background: rgba(154,163,192,.15); color: #c0c8e0; }
+
+  /* Segment scorecards */
+  .scorecards { display:grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 18px; }
+  @media (max-width: 1100px) { .scorecards { grid-template-columns: repeat(2, 1fr); } }
+  .scorecard {
+    background: var(--panel); border: 1px solid var(--grid); border-radius: 14px; padding: 16px;
+    border-top: 3px solid var(--accent);
+  }
+  .scorecard .name { font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+  .scorecard .rate { font-size: 28px; font-weight: 600; }
+  .scorecard .delta { font-size: 12px; margin-top: 2px; color: var(--muted); }
+  .scorecard .delta.up { color: var(--accent-2); }
+  .scorecard .delta.down { color: var(--warn); }
+  .scorecard .progress { margin-top: 12px; }
+  .scorecard .progress-label { font-size: 11px; color: var(--muted); display:flex; justify-content:space-between; margin-bottom: 4px; }
+
+  .notes {
+    margin-top: 22px; padding: 12px 18px; background: var(--panel-2); border-left: 3px solid var(--muted);
+    border-radius: 8px; font-size: 12px; color: var(--muted);
+  }
+  .notes b { color: var(--ink); }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="eyebrow">FY26 · M&amp;C Organization · Executive View</div>
+    <h1>AI Adoption Dashboard</h1>
+    <div class="sub">Weekly tracking · Aug 2025 – May 2026 · Latest: week of 5/11</div>
+  </div>
+  <div class="sub">FY26 goal: <b style="color:var(--gold)">100% weekly adoption by EOFY</b></div>
+</header>
+
+<!-- ============ EXECUTIVE SUMMARY ============ -->
+<section class="exec-summary">
+  <div class="headline" id="execHeadline"></div>
+
+  <div class="summary-grid" id="execSummary"></div>
+
+  <div class="talking-points" id="talkingPoints"></div>
+</section>
+
+<nav class="tabs" id="tabs">
+  <button class="active" data-view="overview">Org Trajectory</button>
+  <button data-view="benchmark">Segment Benchmarking</button>
+  <button data-view="leaders">Adoption by Leader</button>
+  <button data-view="tools">Adoption by Tool</button>
+  <button data-view="jf">Adoption by Job Family</button>
+</nav>
+
+<main>
+
+<!-- ============ ORG TRAJECTORY ============ -->
+<section class="view active" id="view-overview">
+  <div class="panel" style="margin-bottom:18px;">
+    <h3>FY26 trajectory toward 100% adoption</h3>
+    <div class="hint">Weekly org-wide adoption rate plotted against the EOFY 100% target line.</div>
+    <div class="chart-wrap tall"><canvas id="chartOverall"></canvas></div>
+    <div class="so-what" id="soWhatOverall"></div>
+  </div>
+
+  <div class="grid-2">
+    <div class="panel">
+      <h3>Where we stand vs. goal</h3>
+      <div class="hint">Latest adoption rate by segment, gap-to-100% in parentheses.</div>
+      <div class="chart-wrap"><canvas id="chartSegLatest"></canvas></div>
+    </div>
+    <div class="panel">
+      <h3>Segment momentum over time</h3>
+      <div class="hint">Quarterly trajectory by segment. Steeper slope = stronger momentum.</div>
+      <div class="chart-wrap"><canvas id="chartSegTrend"></canvas></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SEGMENT BENCHMARKING ============ -->
+<section class="view" id="view-benchmark">
+  <div class="scorecards" id="scorecards"></div>
+
+  <div class="panel">
+    <h3>Watch list — leaders needing support</h3>
+    <div class="hint">Leaders below 70% adoption or declining >10pts over past month. Use this list to prioritize 1:1 enablement and outreach.</div>
+    <div style="max-height: 380px; overflow:auto;"><table id="watchTable"><thead><tr>
+      <th>Leader</th><th>Segment</th><th class="num">Rate</th><th class="num">Δ 4wk</th>
+    </tr></thead><tbody></tbody></table></div>
+  </div>
+
+  <div class="panel" style="margin-top:18px;">
+    <h3>Distribution: how many leaders sit in each adoption band?</h3>
+    <div class="hint">Number of leaders at the latest week, grouped by adoption-rate band. The shape of this distribution tells you whether progress is broad-based or driven by a few orgs.</div>
+    <div class="chart-wrap"><canvas id="chartDist"></canvas></div>
+    <div class="so-what" id="soWhatDist"></div>
+  </div>
+</section>
+
+<!-- ============ TOOLS ============ -->
+<section class="view" id="view-tools">
+  <div class="panel" style="margin-bottom:18px;">
+    <h3>Expanding the AI toolkit: more tools, more upskilling opportunities</h3>
+    <div class="hint">% of M&amp;C audience using each tool, weekly. We've broadened the suite of AI tools available to the org so M&amp;Cs can choose what fits their day-to-day.</div>
+    <div class="chart-wrap tall"><canvas id="chartTools"></canvas></div>
+    <div class="so-what" id="soWhatTools"></div>
+  </div>
+
+  <div class="grid-2">
+    <div class="panel">
+      <h3>Tool reach today</h3>
+      <div class="hint">Users per tool at the latest week.</div>
+      <div class="chart-wrap"><canvas id="chartToolsLatest"></canvas></div>
+    </div>
+    <div class="panel">
+      <h3>Share of AI users — week of 5/11</h3>
+      <div class="chart-wrap"><canvas id="chartToolsShare"></canvas></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ JOB FAMILY ============ -->
+<section class="view" id="view-jf">
+  <div class="panel" style="margin-bottom:18px;">
+    <h3>Adoption by job family — where is the gap to 100%?</h3>
+    <div class="hint">% of each JF audience using any AI tool. Marketing is the largest population by far (589 of 808).</div>
+    <div class="chart-wrap tall"><canvas id="chartJF"></canvas></div>
+    <div class="so-what" id="soWhatJF"></div>
+  </div>
+
+  <div class="grid-2">
+    <div class="panel">
+      <h3>JF audience size (latest)</h3>
+      <div class="hint">Where the impact lives — Marketing is the dominant population.</div>
+      <div class="chart-wrap"><canvas id="chartJFSize"></canvas></div>
+    </div>
+    <div class="panel">
+      <h3>Users vs. audience by JF</h3>
+      <div class="hint">Dark bar = total audience; colored = active users. The gap is the opportunity.</div>
+      <div class="chart-wrap"><canvas id="chartJFUsers"></canvas></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ LEADERS ============ -->
+<section class="view" id="view-leaders">
+  <div class="benchmark-controls">
+    <label class="lbl">Segment:</label>
+    <span class="chip active" data-seg="ALL">All</span>
+    <span class="chip" data-seg="Platform">Platform</span>
+    <span class="chip" data-seg="Transformation">Transformation</span>
+    <span class="chip" data-seg="GBSG">GBSG</span>
+    <span class="chip" data-seg="CG">CG</span>
+    <label class="lbl" style="margin-left:14px;">Week:</label>
+    <select id="weekSelect"></select>
+    <label class="lbl" style="margin-left:14px;">Search:</label>
+    <input type="search" id="leaderSearch" placeholder="Leader name…">
+  </div>
+
+  <div class="grid-3">
+    <div class="panel">
+      <h3>Leader leaderboard</h3>
+      <div class="hint">Sortable. Click a row to see that leader's full trajectory. Use this in 1:1s and QBRs to celebrate wins and identify support needs.</div>
+      <div style="max-height: 560px; overflow:auto;">
+        <table id="leaderTable">
+          <thead><tr>
+            <th data-sort="name">Leader</th>
+            <th data-sort="seg">Segment</th>
+            <th data-sort="size" class="num">Org Size</th>
+            <th data-sort="users" class="num">Users</th>
+            <th data-sort="rate" class="num">Rate</th>
+            <th data-sort="gap" class="num">Gap to 100%</th>
+            <th data-sort="trend" class="num">Δ vs. 4wk</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="panel">
+      <h3 id="leaderTrendTitle">Select a leader</h3>
+      <div class="hint" id="leaderTrendHint">Click any row to view their weekly adoption trajectory.</div>
+      <div class="chart-wrap tall"><canvas id="chartLeader"></canvas></div>
+    </div>
+  </div>
+</section>
+
+<div class="notes">
+  <b>Data notes.</b> Values flagged as #VALUE!, &lt;5, or N/A in the source were excluded from rate calculations. Orgs with fewer than 5 M&amp;Cs are shown as their best estimate. Segment averages use unweighted leader rates. Org-wide and tool/JF totals come from the rollup sheet; leader-level data comes from the leader view sheet. The FY26 goal of 100% weekly adoption is reflected in gap-to-target calculations throughout.
+</div>
+
+</main>
+
+<script>
+/* =========================================================
+   EMBEDDED DATA
+   ========================================================= */
+
+const FY26_GOAL = 100;
+
+const ROLLUP_WEEKS = [
+  "Aug","9/7","9/28","10/26","11/9","11/30","12/14","1/4","1/18","2/1","2/15","3/8","4/27","5/11"
+];
+
+const ORG_SIZE  = [null,747,750,749,761,757,767,760,769,776,778,783,801,808];
+const ALL_USERS = [604,542,557,576,551,582,529,532,579,582,608,618,732,710];
+const ALL_RATE  = [80.86,73,74,77,72,77,69,70,75,75,78,79,91,88];
+
+const JF = {
+  "Comms":           { size:[null,null,102,100,101,101,101,101,101,102,102,102,104,104],
+                       users:[null,null,85,77,75,83,71,76,79,82,87,83,94,86],
+                       rate:[null,null,83,77,74.3,82.2,70.3,75.2,78.2,80.4,85.3,81.4,90,83] },
+  "Marketing":       { size:[null,null,531,537,536,541,550,543,553,561,566,568,582,589],
+                       users:[null,null,391,406,383,382,378,382,416,424,438,452,540,522],
+                       rate:[null,null,74,75.6,71.5,70.6,68.7,70.3,75.2,75.6,77.4,79.6,93,89] },
+  "Market Research": { size:[null,null,24,24,25,25,26,26,26,26,25,24,25,25],
+                       users:[null,null,18,21,20,18,21,18,21,18,21,21,23,22],
+                       rate:[null,null,75,87.5,80,72,80.8,69.2,80.8,69.2,84,87.5,92,88] },
+  "Marketing Ops":   { size:[null,null,84,88,90,90,90,101,89,87,85,89,89,90],
+                       users:[null,null,57,60,56,56,59,76,63,58,62,62,79,77],
+                       rate:[null,null,68,68.2,62.2,62.2,65.6,75.2,70.8,66.7,72.9,69.7,89,86] }
+};
+
+const TOOLS = {
+  "Claude Chat":   { users:[null,null,null,null,null,null,null,null,null,null,null,null,675,537],
+                     rate: [null,null,null,null,null,null,null,null,null,null,null,null,84,66] },
+  "Claude Cowork": { users:[null,null,null,null,null,null,null,null,null,null,null,null,null,289],
+                     rate: [null,null,null,null,null,null,null,null,null,null,null,null,null,36] },
+  "Gemini":        { users:[537,391,446,400,352,424,325,323,384,424,459,457,372,300],
+                     rate: [72,52,59,53,46,56,42,43,50,55,59,58,46,37] },
+  "ChatGPT":       { users:[159,175,203,282,293,297,298,296,307,318,322,356,249,189],
+                     rate: [21,23,27,38,39,39,39,39,40,41,41,45,31,23] }
+};
+
+const LEADER_WEEKS = ["9/7","9/28","10/26","11/9","11/30","12/14","1/5","1/18","2/1","2/15","3/8","4/27","5/11"];
+
+const _ = null;
+const LEADERS = [
+  { name:"Thomas Ranese",         seg:"Platform",       size:55,   rates:[76,82,75,73,77,73,69,70,78,76,72,85,84] },
+  { name:"David Zasada",          seg:"Platform",       size:3,    rates:[100,100,100,100,100,_,_,100,100,67,100,_,_] },
+  { name:"Jeremy Jones",          seg:"Platform",       size:3,    rates:[_,100,0,50,50,_,_,100,100,100,0,_,_] },
+  { name:"Shweta Merchant",       seg:"Platform",       size:9,    rates:[100,100,100,100,100,111,122,100,91,100,100,94,89] },
+  { name:"Christine Chu",         seg:"Platform",       size:4,    rates:[_,100,100,100,100,_,_,100,75,100,100,100,_] },
+  { name:"Mos Okediji",           seg:"Platform",       size:4,    rates:[_,100,100,100,100,_,_,100,100,100,100,_,_] },
+  { name:"Tamara Thompson",       seg:"Platform",       size:41,   rates:[67,76,59,61,71,59,51,55,70,70,68,83,81] },
+  { name:"Gemini Babla",          seg:"Platform",       size:12,   rates:[_,56,22,30,50,50,42,36,64,45,45,67,67] },
+  { name:"Mark Lodwick",          seg:"Platform",       size:17,   rates:[_,82,69,81,75,59,53,60,67,80,69,88,94] },
+  { name:"Suzanne Lindbergh",     seg:"Platform",       size:5,    rates:[_,_,_,_,80,40,80,75,100,100,100,100,_] },
+
+  { name:"Lionel Mohri",          seg:"Transformation", size:121,  rates:[61,78,71,61,65,67,70,80,80,84,82,91,83] },
+  { name:"Cory Aikman",           seg:"Transformation", size:8,    rates:[_,71,86,71,57,50,63,100,100,88,88,100,88] },
+  { name:"Joanna Sim",            seg:"Transformation", size:5,    rates:[_,67,60,67,80,60,40,80,60,50,83,_,_] },
+  { name:"Paige Young",           seg:"Transformation", size:106,  rates:[_,_,_,_,_,_,69,72,78,80,86,81,91] },
+  { name:"Abby Smith",            seg:"Transformation", size:31,   rates:[_,87,77,77,87,68,77,80,83,87,80,90,94] },
+  { name:"Joe Samagond",          seg:"Transformation", size:9,    rates:[_,100,100,100,100,78,89,100,100,100,100,100,89] },
+  { name:"Kali Fry",              seg:"Transformation", size:7,    rates:[_,80,57,71,71,29,57,57,57,63,57,71,86] },
+  { name:"Pooja Prasad",          seg:"Transformation", size:5,    rates:[_,83,75,50,80,80,80,80,100,100,100,100,100] },
+  { name:"Sarah Peterson",        seg:"Transformation", size:6,    rates:[_,86,86,86,86,83,83,83,83,83,83,83,100] },
+  { name:"Erica Terry Derryck",   seg:"Transformation", size:55,   rates:[_,77,77,73,77,73,67,77,77,85,80,91,76] },
+  { name:"Christina Scavone",     seg:"Transformation", size:10,   rates:[_,67,67,56,78,60,80,89,100,100,78,90,60] },
+  { name:"Jennifer Buchbinder",   seg:"Transformation", size:25,   rates:[_,84,83,75,67,72,56,72,72,80,72,92,76] },
+  { name:"Mardi Douglass",        seg:"Transformation", size:6,    rates:[_,100,100,100,100,100,100,100,100,100,100,100,100] },
+  { name:"Oliver Stewart",        seg:"Transformation", size:4,    rates:[_,0,0,0,50,_,_,0,0,67,67,_,_] },
+  { name:"Sarah Triantafillou",   seg:"Transformation", size:6,    rates:[_,83,83,100,100,100,83,83,83,83,100,83,83] },
+  { name:"Rick Heineman",         seg:"Transformation", size:17,   rates:[79,82,78,75,77,59,76,75,76,82,82,88,88] },
+  { name:"Ashley McMahon",        seg:"Transformation", size:11,   rates:[_,83,83,77,75,64,73,80,73,82,82,82,91] },
+
+  { name:"Cathleen Ryan",         seg:"GBSG",           size:86,   rates:[68,67,67,68,72,66,67,77,71,82,84,96,85] },
+  { name:"Brian Cooke",           seg:"GBSG",           size:13,   rates:[_,100,100,100,100,31,31,100,100,100,83,92,92] },
+  { name:"Daniel Bueckman",       seg:"GBSG",           size:42,   rates:[_,63,61,64,71,69,69,78,60,75,85,95,81] },
+  { name:"Kristen Salzberg",      seg:"GBSG",           size:10,   rates:[_,90,70,90,80,40,70,80,78,67,80,100,100] },
+  { name:"Christine De Martini",  seg:"GBSG",           size:34,   rates:[66,94,70,75,91,47,53,84,82,72,92,93,94] },
+  { name:"Anne Marie Francesconi",seg:"GBSG",           size:21,   rates:[_,100,100,100,100,48,43,100,91,71,100,94,91] },
+  { name:"Marie Chaisson",        seg:"GBSG",           size:9,    rates:[_,88,60,60,90,56,78,67,78,78,89,100,100] },
+  { name:"Ciaran Quilty",         seg:"GBSG",           size:71,   rates:[_,_,71,63,75,59,55,75,67,74,76,90,85] },
+  { name:"Leigh Thomas",          seg:"GBSG",           size:21,   rates:[_,_,82,67,82,67,62,78,78,87,87,90,81] },
+  { name:"Puja Subrun",           seg:"GBSG",           size:28,   rates:[_,_,64,63,69,64,54,76,69,70,63,89,79] },
+  { name:"Suzy Nicoletti",        seg:"GBSG",           size:15,   rates:[_,_,67,58,76,67,73,71,47,65,82,87,93] },
+  { name:"Jessy Hanley",          seg:"GBSG",           size:49,   rates:[_,59,78,72,60,53,53,61,69,71,72,90,84] },
+  { name:"Dee Dunne",             seg:"GBSG",           size:11,   rates:[_,20,60,70,40,36,36,60,45,64,64,82,64] },
+  { name:"Tom Johnson",           seg:"GBSG",           size:8,    rates:[_,44,67,78,63,25,38,25,50,50,50,86,88] },
+  { name:"Pooja Piyaratna",       seg:"GBSG",           size:75,   rates:[67,76,77,75,83,56,60,86,83,79,85,95,92] },
+  { name:"Alexis Karsant",        seg:"GBSG",           size:12,   rates:[_,67,75,88,89,58,75,100,100,82,100,100,100] },
+  { name:"Elizabeth Joyce",       seg:"GBSG",           size:11,   rates:[_,89,89,67,75,55,73,100,100,100,100,91,100] },
+  { name:"Jany Jacobsen",         seg:"GBSG",           size:20,   rates:[_,100,82,82,91,40,40,92,84,95,88,100,90] },
+  { name:"Nirali Bhagdev",        seg:"GBSG",           size:14,   rates:[_,67,75,58,75,64,57,69,69,77,85,86,79] },
+  { name:"Thom Horton",           seg:"GBSG",           size:38,   rates:[_,57,56,50,61,55,55,64,58,58,54,79,79] },
+  { name:"Sharon Lin",            seg:"GBSG",           size:32,   rates:[_,56,54,49,60,63,66,63,53,57,48,75,75] },
+
+  { name:"Dustin Kroeger",        seg:"CG",             size:29,   rates:[81,81,80,73,68,83,83,77,74,61,61,80,69] },
+  { name:"Erin Skelton",          seg:"CG",             size:9,    rates:[_,100,100,92,100,111,111,100,90,80,80,89,78] },
+  { name:"Raquel Norton",         seg:"CG",             size:9,    rates:[_,56,78,80,60,78,78,60,70,60,60,80,67] },
+  { name:"Nick Soukas",           seg:"CG",             size:119,  rates:[70,78,80,76,84,73,71,75,74,83,82,96,89] },
+  { name:"Carol Lee Mitchell",    seg:"CG",             size:10,   rates:[_,_,_,_,100,20,20,100,100,100,100,100,100] },
+  { name:"John Wolter",           seg:"CG",             size:8,    rates:[_,_,_,_,88,100,88,100,88,100,100,100,100] },
+  { name:"Kelly Elmore",          seg:"CG",             size:1,    rates:[_,_,_,_,100,_,_,0,100,100,100,_,_] },
+  { name:"M Jason Smerican",      seg:"CG",             size:4,    rates:[_,73,_,_,_,_,_,100,100,100,75,_,_] },
+  { name:"Mansi Singhal",         seg:"CG",             size:42,   rates:[_,78,77,70,73,79,67,74,73,87,81,98,88] },
+  { name:"Betsy Scuteri",         seg:"CG",             size:32,   rates:[_,70,75,63,66,69,56,66,67,83,75,97,84] },
+  { name:"Trevor Kelley",         seg:"CG",             size:60,   rates:[_,81,80,71,90,63,68,69,70,75,80,95,88] },
+  { name:"Jamie Lasser",          seg:"CG",             size:18,   rates:[_,76,59,53,76,67,61,44,50,67,61,89,78] },
+  { name:"Michael Stallone",      seg:"CG",             size:16,   rates:[_,89,89,80,100,56,69,63,69,63,81,94,94] },
+  { name:"Victor Chemtob",        seg:"CG",             size:22,   rates:[_,69,88,79,89,64,73,90,86,86,91,100,91] },
+
+  { name:"Katie Potochney",       seg:"Other",          size:2,    rates:[_,_,_,_,_,_,50,100,100,100,50,0,_] },
+  { name:"Emma Rodgers",          seg:"Other",          size:null, rates:[64,59,71,65,64,_,_,64,57,69,79,_,_] },
+  { name:"Kristiina Kansen",      seg:"Other",          size:25,   rates:[60,68,69,77,80,72,80,75,81,85,80,_,_] },
+  { name:"Ray Cao",               seg:"Other",          size:8,    rates:[_,_,_,_,89,113,100,89,89,100,100,_,_] }
+];
+
+/* =========================================================
+   UTILITIES & CONSTANTS
+   ========================================================= */
+
+const SEG_COLORS = {
+  "Platform":      "#6ea8ff",
+  "Transformation":"#7ef0c2",
+  "GBSG":          "#ffb86b",
+  "CG":            "#ff7a8a",
+  "Other":         "#c0c8e0"
+};
+const TOOL_COLORS = {
+  "Claude Chat":   "#7ef0c2",
+  "Claude Cowork": "#6ea8ff",
+  "Gemini":        "#ffb86b",
+  "ChatGPT":       "#c084fc"
+};
+const JF_COLORS = {
+  "Comms":           "#6ea8ff",
+  "Marketing":       "#7ef0c2",
+  "Market Research": "#ffb86b",
+  "Marketing Ops":   "#ff7a8a"
+};
+
+function fmtPct(v) { return v == null ? "—" : Math.round(v) + "%"; }
+function fmtNum(v) { return v == null ? "—" : v.toLocaleString(); }
+function last(arr) {
+  for (let i = arr.length-1; i>=0; i--) if (arr[i] != null) return { v: arr[i], i };
+  return { v:null, i:-1 };
+}
+function avg(arr) {
+  const xs = arr.filter(x => x != null);
+  if (!xs.length) return null;
+  return xs.reduce((a,b)=>a+b,0)/xs.length;
+}
+
+Chart.defaults.color = "#9aa3c0";
+Chart.defaults.borderColor = "#2a335a";
+Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif";
+
+/* =========================================================
+   EXECUTIVE SUMMARY
+   ========================================================= */
+function renderExecSummary() {
+  const latestRate = ALL_RATE[ALL_RATE.length-1];
+  const startRate = ALL_RATE[1];   // 9/7
+  const peakRate = Math.max(...ALL_RATE);
+  const gapToGoal = FY26_GOAL - latestRate;
+  const latestUsers = ALL_USERS[ALL_USERS.length-1];
+  const startUsers = ALL_USERS[1];
+  const usersGrowth = latestUsers - startUsers;
+  const latestSize = ORG_SIZE[ORG_SIZE.length-1];
+
+  // Count leaders ≥90% and <70%
+  const leadersAtGoal = LEADERS.filter(l => {
+    const r = l.rates[l.rates.length-1];
+    return r != null && r >= 90;
+  }).length;
+  const leadersAtRisk = LEADERS.filter(l => {
+    const r = l.rates[l.rates.length-1];
+    return r != null && r < 70;
+  }).length;
+  const totalReporting = LEADERS.filter(l => l.rates[l.rates.length-1] != null).length;
+
+  document.getElementById("execHeadline").innerHTML =
+    `Adoption climbed from ${startRate}% to <span class="pos">${latestRate}%</span> across FY26 — a record peak of ${peakRate}% in late April, with Claude Chat driving the breakthrough. <span class="neg">${gapToGoal} points</span> remain to the 100% weekly adoption FY26 goal.`;
+
+  document.getElementById("execSummary").innerHTML = `
+    <div class="summary-card">
+      <div class="label">Org-wide adoption</div>
+      <div class="value">${latestRate}%</div>
+      <div class="ctx">Up ${latestRate - startRate} pts since Sept · Peak ${peakRate}%</div>
+      <div class="goal-bar"><div class="fill" style="width:${latestRate}%"></div><div class="target"></div></div>
+      <div class="ctx" style="margin-top:4px;">${gapToGoal} pts to FY26 goal of 100%</div>
+    </div>
+    <div class="summary-card">
+      <div class="label">Active users</div>
+      <div class="value">${latestUsers.toLocaleString()}</div>
+      <div class="ctx up">+${usersGrowth.toLocaleString()} users (+${Math.round(usersGrowth/startUsers*100)}%) since Sept</div>
+      <div class="ctx" style="margin-top:8px;">of ${latestSize} M&Cs total · org grew by ${latestSize - 747}</div>
+    </div>
+  `;
+
+  // Talking points
+  const cc = TOOLS["Claude Chat"];
+  const gm = TOOLS["Gemini"];
+  document.getElementById("talkingPoints").innerHTML = `
+    <div class="tp win"><div class="ico">✓</div><div><b>Claude Chat launch was the year's inflection point.</b> Debuted at ${cc.rate[12]}% adoption (675 users, week of 4/27) — the highest single-tool penetration ever recorded for M&C.</div></div>
+    <div class="tp win"><div class="ico">✓</div><div><b>Marketing JF, our largest population, leads the climb.</b> 589 M&Cs, rose 74% → ${last(JF.Marketing.rate).v}% across FY26 with a 93% peak. Where the volume is.</div></div>
+    <div class="tp watch"><div class="ico">!</div><div><b>Most recent week shows a 3-pt dip (91% → 88%).</b> Likely post-launch normalization, but worth monitoring next 2–3 weeks before declaring sustained.</div></div>
+    <div class="tp win"><div class="ico">✓</div><div><b>The AI toolkit is broadening.</b> Four tools now tracked (Claude Chat, Claude Cowork, Gemini, ChatGPT) — giving M&Cs more ways to upskill and integrate AI into their day-to-day.</div></div>
+  `;
+}
+
+/* =========================================================
+   TABS
+   ========================================================= */
+document.querySelectorAll("nav.tabs button").forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll("nav.tabs button").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById("view-" + btn.dataset.view).classList.add("active");
+  };
+});
+
+/* =========================================================
+   OVERVIEW (Org Trajectory)
+   ========================================================= */
+function renderOverview() {
+  const latestRate = ALL_RATE[ALL_RATE.length-1];
+  const peakRate = Math.max(...ALL_RATE);
+  const peakIdx = ALL_RATE.indexOf(peakRate);
+
+  new Chart(document.getElementById("chartOverall"), {
+    type:"line",
+    data:{
+      labels: ROLLUP_WEEKS,
+      datasets:[
+        { label:"Adoption %", data: ALL_RATE, borderColor:"#7ef0c2", backgroundColor:"rgba(126,240,194,.12)",
+          fill:true, tension:.35, pointRadius:4, pointHoverRadius:6, order: 2 },
+        { label:"FY26 goal (100%)", data: ROLLUP_WEEKS.map(()=>100),
+          borderColor:"#ffd66b", borderDash:[6,4], pointRadius:0, fill:false, order: 1 }
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{ mode:"index", intersect:false },
+      scales:{
+        y: { ticks:{ callback:v=>v+"%" }, grid:{ color:"#2a335a" }, max:105 }
+      },
+      plugins:{ legend:{ position:"bottom" } }
+    }
+  });
+
+  document.getElementById("soWhatOverall").innerHTML =
+    `<b>So what:</b> The trajectory is positive but not yet at goal. We added ${ALL_USERS[ALL_USERS.length-1] - ALL_USERS[1]} active users since September while the org grew by ${ORG_SIZE[ORG_SIZE.length-1] - 747} M&Cs — meaning we're not just keeping pace with growth, we're outpacing it. The ${100 - latestRate}-pt gap to goal is closeable in FY26 if we sustain the spring momentum and pull up the watch-list orgs.`;
+
+  // Segment latest with gap-to-100
+  const segLatest = {};
+  const segTrend  = {};
+  ["Platform","Transformation","GBSG","CG"].forEach(s => {
+    const leadersInSeg = LEADERS.filter(l => l.seg === s);
+    segLatest[s] = avg(leadersInSeg.map(l => l.rates[l.rates.length-1]));
+    segTrend[s]  = LEADER_WEEKS.map((_w, i) => avg(leadersInSeg.map(l => l.rates[i])));
+  });
+
+  new Chart(document.getElementById("chartSegLatest"), {
+    type:"bar",
+    data:{
+      labels: Object.keys(segLatest),
+      datasets:[
+        { label:"Current adoption", data: Object.values(segLatest),
+          backgroundColor: Object.keys(segLatest).map(s => SEG_COLORS[s]), borderRadius:8 },
+        { label:"Gap to 100%", data: Object.values(segLatest).map(v => 100 - v),
+          backgroundColor: "rgba(255,214,107,.25)", borderRadius:8 }
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ tooltip:{ callbacks:{ label:c=>c.dataset.label + ": " + c.parsed.y.toFixed(1)+"%" }}, legend:{position:"bottom"} },
+      scales:{
+        x:{ stacked:true },
+        y:{ stacked:true, ticks:{ callback:v=>v+"%" }, beginAtZero:true, max:100 }
+      }
+    }
+  });
+
+  new Chart(document.getElementById("chartSegTrend"), {
+    type:"line",
+    data:{
+      labels: LEADER_WEEKS,
+      datasets: Object.keys(segTrend).map(s => ({
+        label: s, data: segTrend[s],
+        borderColor: SEG_COLORS[s], backgroundColor: SEG_COLORS[s]+"22",
+        tension:.35, pointRadius:2, spanGaps:true
+      })).concat([{
+        label:"Goal (100%)", data: LEADER_WEEKS.map(()=>100),
+        borderColor:"#ffd66b", borderDash:[4,4], pointRadius:0, fill:false
+      }])
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{ mode:"index", intersect:false },
+      scales:{ y:{ ticks:{ callback:v=>v+"%" }, max:105 } },
+      plugins:{ legend:{ position:"bottom" } }
+    }
+  });
+}
+
+/* =========================================================
+   BENCHMARK
+   ========================================================= */
+function renderBenchmark() {
+  // Scorecards per segment
+  const segs = ["Platform","Transformation","GBSG","CG"];
+  const cards = segs.map(s => {
+    const leadersInSeg = LEADERS.filter(l => l.seg === s);
+    const latest = avg(leadersInSeg.map(l => l.rates[l.rates.length-1]));
+    const prev = avg(leadersInSeg.map(l => l.rates[l.rates.length-2]));
+    const delta = latest - prev;
+    const gap = FY26_GOAL - latest;
+    const atGoal = leadersInSeg.filter(l => {
+      const r = l.rates[l.rates.length-1];
+      return r != null && r >= 90;
+    }).length;
+    const totalRpt = leadersInSeg.filter(l => l.rates[l.rates.length-1] != null).length;
+
+    return `
+      <div class="scorecard" style="border-top-color:${SEG_COLORS[s]}">
+        <div class="name">${s}</div>
+        <div class="rate">${latest.toFixed(0)}%</div>
+        <div class="delta ${delta>=0?'up':'down'}">${delta>=0?'▲':'▼'} ${Math.abs(delta).toFixed(1)} pts vs. prev wk</div>
+        <div class="progress">
+          <div class="progress-label"><span>Progress to 100%</span><span>${gap.toFixed(0)} pts left</span></div>
+          <div class="goal-bar"><div class="fill" style="width:${latest}%; background:${SEG_COLORS[s]}"></div><div class="target"></div></div>
+        </div>
+        <div style="margin-top:10px; font-size:12px; color:var(--muted);"><b style="color:var(--ink)">${atGoal} of ${totalRpt}</b> leaders ≥90%</div>
+      </div>
+    `;
+  });
+  document.getElementById("scorecards").innerHTML = cards.join("");
+
+  const reporting = LEADERS.filter(l => l.rates[l.rates.length-1] != null);
+
+  // Watch list
+  const watch = reporting
+    .map(l => {
+      const r = l.rates[l.rates.length-1];
+      const back4 = l.rates.length >= 5 ? l.rates[l.rates.length-5] : null;
+      const delta = back4 != null ? r - back4 : null;
+      return { ...l, r, delta };
+    })
+    .filter(l => l.r < 70 || (l.delta != null && l.delta < -10))
+    .sort((a,b) => a.r - b.r);
+  document.querySelector("#watchTable tbody").innerHTML = watch.map(l => `
+    <tr><td>${l.name}</td><td><span class="seg-badge seg-${l.seg}">${l.seg}</span></td>
+    <td class="num">${l.r.toFixed(0)}%</td>
+    <td class="num" style="color:${l.delta==null?'var(--muted)':l.delta>=0?'var(--accent-2)':'var(--danger)'}">${l.delta==null?'—':(l.delta>=0?'+':'')+l.delta.toFixed(0)+' pts'}</td></tr>
+  `).join("");
+
+  // Distribution
+  const bands = [
+    { label:"<50%",    min:0,   max:50,   color:"#ff7a8a" },
+    { label:"50-69%",  min:50,  max:70,   color:"#ffb86b" },
+    { label:"70-89%",  min:70,  max:90,   color:"#ffd66b" },
+    { label:"90-99%",  min:90,  max:100,  color:"#7ef0c2" },
+    { label:"100%",    min:100, max:101,  color:"#6ea8ff" }
+  ];
+  const dist = bands.map(b => reporting.filter(l => {
+    const r = l.rates[l.rates.length-1];
+    return r >= b.min && r < b.max;
+  }).length);
+
+  new Chart(document.getElementById("chartDist"), {
+    type:"bar",
+    data:{
+      labels: bands.map(b => b.label),
+      datasets:[{ data: dist, backgroundColor: bands.map(b => b.color), borderRadius: 8 }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:c => c.parsed.y + " leaders" }}},
+      scales:{ y:{ beginAtZero:true, ticks:{ stepSize:1 }, title:{display:true, text:"# of Leaders", color:"#9aa3c0"} } }
+    }
+  });
+
+  const atOrAbove90 = dist[3] + dist[4];
+  const below70 = dist[0] + dist[1];
+  document.getElementById("soWhatDist").innerHTML =
+    `<b>So what:</b> ${atOrAbove90} of ${reporting.length} leaders are at or above 90% — that's the cohort already at goal. The ${below70} below 70% are where targeted outreach will move the org-wide number most. The middle band (70–89%) responds well to peer benchmarking.`;
+}
+
+/* =========================================================
+   TOOLS
+   ========================================================= */
+function renderTools() {
+  const toolNames = Object.keys(TOOLS);
+  const latestUsersByTool = toolNames.map(t => last(TOOLS[t].users).v);
+
+  new Chart(document.getElementById("chartTools"), {
+    type:"line",
+    data:{
+      labels: ROLLUP_WEEKS,
+      datasets: toolNames.map(t => ({
+        label: t, data: TOOLS[t].rate,
+        borderColor: TOOL_COLORS[t], backgroundColor: TOOL_COLORS[t]+"22",
+        tension:.35, pointRadius:3, spanGaps:true
+      }))
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{ mode:"index", intersect:false },
+      scales:{ y:{ ticks:{ callback:v=>v+"%" }, max:100 } },
+      plugins:{ legend:{ position:"bottom" } }
+    }
+  });
+
+  const cc = TOOLS["Claude Chat"], cw = TOOLS["Claude Cowork"], gm = TOOLS["Gemini"], cg = TOOLS["ChatGPT"];
+  document.getElementById("soWhatTools").innerHTML =
+    `<b>So what:</b> Claude Chat launched at <b>${cc.rate[12]}% adoption</b> (675 users) — the strongest debut for any tool we've offered. Claude Cowork entered the mix at ${cw.rate[13]}% in its first tracked week. Each tool gives M&Cs another way to upskill and integrate AI into their workflow — the toolkit is broadening, and adoption is growing alongside it.`;
+
+  new Chart(document.getElementById("chartToolsLatest"), {
+    type:"bar",
+    data:{
+      labels: toolNames,
+      datasets:[{ data: latestUsersByTool, backgroundColor: toolNames.map(t => TOOL_COLORS[t]), borderRadius:8 }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      indexAxis:"y",
+      plugins:{ legend:{display:false} },
+      scales:{ x:{ beginAtZero:true } }
+    }
+  });
+
+  new Chart(document.getElementById("chartToolsShare"), {
+    type:"doughnut",
+    data:{
+      labels: toolNames,
+      datasets:[{
+        data: latestUsersByTool,
+        backgroundColor: toolNames.map(t => TOOL_COLORS[t]),
+        borderColor: "#131a30", borderWidth: 2
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ position:"bottom" } },
+      cutout: "60%"
+    }
+  });
+}
+
+/* =========================================================
+   JOB FAMILY
+   ========================================================= */
+function renderJF() {
+  const jfNames = Object.keys(JF);
+  const latestRate  = jfNames.map(j => last(JF[j].rate).v);
+  const latestSize  = jfNames.map(j => last(JF[j].size).v);
+  const latestUsers = jfNames.map(j => last(JF[j].users).v);
+
+  new Chart(document.getElementById("chartJF"), {
+    type:"line",
+    data:{
+      labels: ROLLUP_WEEKS,
+      datasets: jfNames.map(j => ({
+        label: j, data: JF[j].rate,
+        borderColor: JF_COLORS[j], backgroundColor: JF_COLORS[j]+"22",
+        tension:.35, pointRadius:3, spanGaps:true
+      })).concat([{
+        label:"Goal (100%)", data: ROLLUP_WEEKS.map(()=>100),
+        borderColor:"#ffd66b", borderDash:[4,4], pointRadius:0, fill:false
+      }])
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{ mode:"index", intersect:false },
+      scales:{ y:{ ticks:{ callback:v=>v+"%" }, max:105 } },
+      plugins:{ legend:{ position:"bottom" } }
+    }
+  });
+
+  const topJF = jfNames[latestRate.indexOf(Math.max(...latestRate))];
+  const botJF = jfNames[latestRate.indexOf(Math.min(...latestRate))];
+  const mktGap = 100 - last(JF.Marketing.rate).v;
+  const mktUsersGap = last(JF.Marketing.size).v - last(JF.Marketing.users).v;
+  document.getElementById("soWhatJF").innerHTML =
+    `<b>So what:</b> Marketing is both the largest population (${last(JF.Marketing.size).v} of ${ORG_SIZE[ORG_SIZE.length-1]} M&Cs) and where the math lives — closing Marketing's ${mktGap}-pt gap means moving ~${mktUsersGap} M&Cs into active use. ${topJF} leads at ${Math.max(...latestRate)}%; ${botJF} trails at ${Math.min(...latestRate)}% (${(Math.max(...latestRate)-Math.min(...latestRate)).toFixed(0)}pt spread). Targeted enablement in the bottom JFs is the fastest path to org-wide 100%.`;
+
+  new Chart(document.getElementById("chartJFSize"), {
+    type:"bar",
+    data:{
+      labels: jfNames,
+      datasets:[{ data: latestSize, backgroundColor: jfNames.map(j => JF_COLORS[j]), borderRadius:8 }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false} },
+      scales:{ y:{ beginAtZero:true } }
+    }
+  });
+
+  new Chart(document.getElementById("chartJFUsers"), {
+    type:"bar",
+    data:{
+      labels: jfNames,
+      datasets:[
+        { label:"Audience", data: latestSize, backgroundColor: "#2a335a" },
+        { label:"Active users", data: latestUsers, backgroundColor: jfNames.map(j => JF_COLORS[j]) }
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      scales:{ y:{ beginAtZero:true } },
+      plugins:{ legend:{ position:"bottom" } }
+    }
+  });
+}
+
+/* =========================================================
+   LEADERS
+   ========================================================= */
+let leaderState = { seg:"ALL", weekIdx: LEADER_WEEKS.length-1, search:"", sortKey:"rate", sortDir:-1 };
+let leaderChart = null;
+
+function renderLeaders() {
+  const sel = document.getElementById("weekSelect");
+  sel.innerHTML = LEADER_WEEKS.map((w,i) => `<option value="${i}" ${i===leaderState.weekIdx?'selected':''}>Week of ${w}</option>`).join("");
+  sel.onchange = e => { leaderState.weekIdx = parseInt(e.target.value); renderLeaderTable(); };
+
+  document.querySelectorAll(".chip[data-seg]").forEach(c => {
+    c.onclick = () => {
+      document.querySelectorAll(".chip[data-seg]").forEach(x => x.classList.remove("active"));
+      c.classList.add("active");
+      leaderState.seg = c.dataset.seg;
+      renderLeaderTable();
+    };
+  });
+
+  document.getElementById("leaderSearch").oninput = e => {
+    leaderState.search = e.target.value.toLowerCase();
+    renderLeaderTable();
+  };
+
+  document.querySelectorAll("#leaderTable th[data-sort]").forEach(th => {
+    th.onclick = () => {
+      const k = th.dataset.sort;
+      if (leaderState.sortKey === k) leaderState.sortDir *= -1;
+      else { leaderState.sortKey = k; leaderState.sortDir = k === "name" ? 1 : -1; }
+      renderLeaderTable();
+    };
+  });
+
+  renderLeaderTable();
+}
+
+function renderLeaderTable() {
+  const wi = leaderState.weekIdx;
+  let rows = LEADERS
+    .filter(l => leaderState.seg === "ALL" || l.seg === leaderState.seg)
+    .filter(l => !leaderState.search || l.name.toLowerCase().includes(leaderState.search))
+    .map(l => {
+      const rate = l.rates[wi];
+      const users = (rate != null && l.size) ? Math.round(rate/100 * l.size) : null;
+      const back4 = wi >= 4 ? l.rates[wi-4] : null;
+      const trend = (rate != null && back4 != null) ? rate - back4 : null;
+      const gap = (rate != null) ? 100 - rate : null;
+      return { ...l, rate, users, trend, gap };
+    });
+
+  const k = leaderState.sortKey, d = leaderState.sortDir;
+  rows.sort((a,b) => {
+    let va = a[k], vb = b[k];
+    if (va == null) return 1;
+    if (vb == null) return -1;
+    if (typeof va === "string") return va.localeCompare(vb) * d;
+    return (va - vb) * d;
+  });
+
+  const tbody = document.querySelector("#leaderTable tbody");
+  tbody.innerHTML = rows.map(r => `
+    <tr data-leader="${r.name}">
+      <td>${r.name}</td>
+      <td><span class="seg-badge seg-${r.seg}">${r.seg}</span></td>
+      <td class="num">${r.size ?? "—"}</td>
+      <td class="num">${r.users != null ? r.users : "—"}</td>
+      <td class="num">
+        ${r.rate != null ? `<span class="rate-bar" style="width:${Math.min(r.rate,100)*0.6}px"></span>${r.rate.toFixed(0)}%` : "—"}
+      </td>
+      <td class="num" style="color:${r.gap==null?'var(--muted)':r.gap<=10?'var(--accent-2)':r.gap<=30?'var(--warn)':'var(--danger)'}">
+        ${r.gap == null ? "—" : r.gap.toFixed(0) + " pts"}
+      </td>
+      <td class="num" style="color:${r.trend==null?'var(--muted)':r.trend>=0?'var(--accent-2)':'var(--danger)'}">
+        ${r.trend == null ? "—" : (r.trend>=0?"+":"") + r.trend.toFixed(0) + " pts"}
+      </td>
+    </tr>
+  `).join("");
+
+  tbody.querySelectorAll("tr").forEach(tr => {
+    tr.onclick = () => renderLeaderChart(tr.dataset.leader);
+  });
+}
+
+function renderLeaderChart(name) {
+  const l = LEADERS.find(x => x.name === name);
+  if (!l) return;
+  document.getElementById("leaderTrendTitle").textContent = l.name;
+  document.getElementById("leaderTrendHint").innerHTML =
+    `<span class="seg-badge seg-${l.seg}">${l.seg}</span> · Org size: ${l.size ?? "—"} M&Cs · vs. 100% goal`;
+
+  if (leaderChart) leaderChart.destroy();
+  leaderChart = new Chart(document.getElementById("chartLeader"), {
+    type:"line",
+    data:{
+      labels: LEADER_WEEKS,
+      datasets:[
+        { label: l.name + " — adoption %",
+          data: l.rates,
+          borderColor: SEG_COLORS[l.seg],
+          backgroundColor: SEG_COLORS[l.seg] + "33",
+          fill:true, tension:.35, pointRadius:4, spanGaps:true },
+        { label: "Goal (100%)", data: LEADER_WEEKS.map(()=>100),
+          borderColor:"#ffd66b", borderDash:[4,4], pointRadius:0, fill:false }
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      scales:{ y:{ ticks:{ callback:v=>v+"%" }, max:120, beginAtZero:true } },
+      plugins:{ legend:{ display:false } }
+    }
+  });
+}
+
+/* =========================================================
+   INIT
+   ========================================================= */
+renderExecSummary();
+renderOverview();
+renderBenchmark();
+renderTools();
+renderJF();
+renderLeaders();
+</script>
+
+</body>
+</html>
