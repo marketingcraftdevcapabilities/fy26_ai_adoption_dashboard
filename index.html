@@ -5,70 +5,113 @@
 <title>FY26 M&C AI Adoption — Executive Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
+  /* MCD&C Brand Palette per Style Guide (Jan 2026) */
   :root {
-    --bg: #0b1020;
-    --panel: #131a30;
-    --panel-2: #1a2240;
-    --ink: #e6e9f5;
-    --muted: #9aa3c0;
-    --accent: #6ea8ff;
-    --accent-2: #7ef0c2;
-    --warn: #ffb86b;
-    --danger: #ff7a8a;
-    --grid: #2a335a;
-    --chip: #232c52;
-    --gold: #ffd66b;
+    --super-blue: #236CFF;        /* primary brand */
+    --blueberry: #00254A;         /* dark navy */
+    --agave-30:  #81F2FE;
+    --agave-20:  #C2F5FF;
+    --wintermint:#EFF4F9;         /* off-white panel bg */
+    --tofu:      #F4F4EF;
+    /* secondary accents — never dominant */
+    --kiwi:      #3BD85E;
+    --honey-40:  #F9C741;
+    --honey-80:  #AC6500;
+    --tomato:    #FF5C37;
+    --spearmint: #003E31;
+    --watermelon:#4F0513;
+
+    /* semantic tokens */
+    --bg: #FFFFFF;
+    --panel: #FFFFFF;
+    --panel-2: var(--wintermint);
+    --ink: var(--blueberry);
+    --muted: #5A6B82;
+    --accent: var(--super-blue);
+    --accent-2: #1F8A3E;          /* positive / "up" semantic */
+    --warn: var(--honey-80);
+    --danger: var(--tomato);
+    --grid: #DCE3ED;
+    --chip: var(--wintermint);
+    --gold: var(--honey-40);
   }
   * { box-sizing: border-box; }
   body {
-    margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background: linear-gradient(180deg, #070b1a 0%, #0b1020 100%);
+    margin: 0;
+    font-family: "Avenir Next", "Avenir Next for Intuit", Avenir, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--wintermint);
     color: var(--ink); min-height: 100vh;
   }
   header {
-    padding: 28px 36px 8px; display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:16px;
+    background: var(--super-blue);
+    color: #fff;
+    padding: 32px 36px 28px;
+    display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:16px;
   }
-  header h1 { margin:0; font-size: 26px; letter-spacing:-0.02em; }
+  header h1 { margin:0; font-size: 28px; letter-spacing:-0.01em; color: #fff; font-weight: 400; }
   header .eyebrow {
-    color: var(--accent-2); font-size: 11px; text-transform: uppercase; letter-spacing: .15em; font-weight: 600; margin-bottom: 6px;
+    color: #fff; font-size: 11px; text-transform: uppercase; letter-spacing: .18em; font-weight: 700; margin-bottom: 6px; opacity: .85;
   }
-  header .sub { color: var(--muted); font-size: 13px; margin-top:4px; }
+  header .sub { color: rgba(255,255,255,.85); font-size: 13px; margin-top:4px; }
+  header .sub b { color: #fff; font-weight: 600; }
+
+  /* MCD&C Wordmark lockup (typographic recreation) */
+  .wordmark {
+    display: inline-block;
+    margin-bottom: 16px;
+    line-height: 1.1;
+  }
+  .wordmark .marketing {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .18em;
+    color: rgba(255,255,255,.9);
+    margin-bottom: 2px;
+  }
+  .wordmark .name {
+    display: block;
+    font-size: 18px;
+    font-weight: 400;
+    color: #fff;
+  }
 
   /* ============ EXECUTIVE SUMMARY (above the fold) ============ */
   .exec-summary {
-    margin: 12px 36px 24px; padding: 24px 28px;
-    background: linear-gradient(135deg, rgba(110,168,255,.08), rgba(126,240,194,.05));
+    margin: 24px 36px 24px; padding: 28px 32px;
+    background: #fff;
     border: 1px solid var(--grid); border-radius: 16px;
+    box-shadow: 0 1px 3px rgba(0, 37, 74, 0.04);
   }
   .exec-summary .headline {
-    font-size: 22px; font-weight: 600; line-height: 1.35; margin: 0 0 14px;
+    font-size: 22px; font-weight: 500; line-height: 1.4; margin: 0 0 14px;
     color: var(--ink);
   }
-  .exec-summary .headline .pos { color: var(--accent-2); }
-  .exec-summary .headline .neg { color: var(--warn); }
+  .exec-summary .headline .pos { color: var(--super-blue); font-weight: 600; }
+  .exec-summary .headline .neg { color: var(--honey-80); font-weight: 600; }
 
   .summary-grid {
     display:grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 18px;
   }
   @media (max-width: 700px) { .summary-grid { grid-template-columns: 1fr; } }
   .summary-card {
-    background: rgba(11,16,32,.5); border: 1px solid var(--grid); border-radius: 12px; padding: 14px 16px;
+    background: var(--wintermint); border: 1px solid var(--grid); border-radius: 12px; padding: 16px 18px;
   }
-  .summary-card .label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
-  .summary-card .value { font-size: 26px; font-weight: 600; margin-top: 6px; }
+  .summary-card .label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; font-weight: 600; }
+  .summary-card .value { font-size: 32px; font-weight: 500; margin-top: 6px; color: var(--blueberry); }
   .summary-card .ctx { font-size: 12px; margin-top: 4px; color: var(--muted); }
-  .summary-card .ctx.up { color: var(--accent-2); }
-  .summary-card .ctx.down { color: var(--warn); }
+  .summary-card .ctx.up { color: #1F8A3E; font-weight: 500; }
+  .summary-card .ctx.down { color: var(--honey-80); font-weight: 500; }
 
   /* Goal gauge */
   .goal-bar {
     height: 8px; background: var(--grid); border-radius: 4px; overflow: hidden; margin-top: 10px; position:relative;
   }
   .goal-bar .fill {
-    height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    height: 100%; background: var(--super-blue);
   }
   .goal-bar .target {
-    position:absolute; right:0; top:-2px; width:2px; height:12px; background: var(--gold);
+    position:absolute; right:0; top:-2px; width:2px; height:12px; background: var(--honey-40);
   }
 
   /* Talking points */
@@ -77,24 +120,25 @@
     display: grid; grid-template-columns: 1fr 1fr; gap: 14px 32px;
   }
   @media (max-width: 900px) { .talking-points { grid-template-columns: 1fr; } }
-  .tp { display:flex; gap: 12px; align-items: flex-start; font-size: 13px; line-height: 1.5; }
+  .tp { display:flex; gap: 12px; align-items: flex-start; font-size: 13px; line-height: 1.5; color: var(--ink); }
   .tp .ico {
     flex-shrink:0; width: 22px; height: 22px; border-radius: 50%; display:flex; align-items:center; justify-content:center;
     font-size: 12px; font-weight: 700;
   }
-  .tp.win .ico { background: rgba(126,240,194,.18); color: var(--accent-2); }
-  .tp.watch .ico { background: rgba(255,184,107,.18); color: var(--warn); }
-  .tp b { color: var(--ink); }
+  .tp.win .ico { background: var(--agave-20); color: var(--super-blue); }
+  .tp.watch .ico { background: rgba(249,199,65,.3); color: var(--honey-80); }
+  .tp b { color: var(--blueberry); font-weight: 600; }
 
   /* ============ TABS ============ */
   nav.tabs {
-    display:flex; gap:6px; padding: 0 36px; border-bottom: 1px solid var(--grid); margin-bottom: 18px;
+    display:flex; gap:6px; padding: 0 36px; background: #fff; border-bottom: 1px solid var(--grid); margin-bottom: 18px;
   }
   nav.tabs button {
-    background: transparent; border:none; color: var(--muted); padding: 12px 18px;
-    font-size: 13px; cursor:pointer; border-bottom: 2px solid transparent; font-weight:500;
+    background: transparent; border:none; color: var(--muted); padding: 14px 18px;
+    font-size: 13px; cursor:pointer; border-bottom: 3px solid transparent; font-weight:500;
+    font-family: inherit;
   }
-  nav.tabs button.active { color: var(--ink); border-bottom-color: var(--accent); }
+  nav.tabs button.active { color: var(--super-blue); border-bottom-color: var(--super-blue); font-weight: 600; }
   nav.tabs button:hover:not(.active) { color: var(--ink); }
 
   main { padding: 0 36px 60px; }
@@ -107,76 +151,81 @@
   @media (max-width: 1000px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
 
   .panel {
-    background: var(--panel); border: 1px solid var(--grid); border-radius: 14px; padding: 18px;
+    background: var(--panel); border: 1px solid var(--grid); border-radius: 14px; padding: 20px;
+    box-shadow: 0 1px 3px rgba(0, 37, 74, 0.04);
   }
-  .panel h3 { margin: 0 0 8px; font-size: 15px; font-weight: 600; }
-  .panel .hint { color: var(--muted); font-size: 12px; margin-bottom: 12px; }
+  .panel h3 { margin: 0 0 8px; font-size: 15px; font-weight: 600; color: var(--blueberry); }
+  .panel .hint { color: var(--muted); font-size: 12px; margin-bottom: 14px; }
   .chart-wrap { position:relative; height: 320px; }
   .chart-wrap.tall { height: 420px; }
 
   /* So-what callout */
   .so-what {
-    background: rgba(126,240,194,.08); border-left: 3px solid var(--accent-2);
-    border-radius: 8px; padding: 10px 14px; margin-top: 12px;
-    font-size: 13px; line-height: 1.5;
+    background: var(--wintermint); border-left: 3px solid var(--super-blue);
+    border-radius: 8px; padding: 12px 16px; margin-top: 14px;
+    font-size: 13px; line-height: 1.55; color: var(--ink);
   }
-  .so-what b { color: var(--accent-2); }
-  .so-what.warn { background: rgba(255,184,107,.08); border-left-color: var(--warn); }
-  .so-what.warn b { color: var(--warn); }
+  .so-what b { color: var(--super-blue); font-weight: 600; }
+  .so-what.warn { background: rgba(249,199,65,.12); border-left-color: var(--honey-80); }
+  .so-what.warn b { color: var(--honey-80); }
 
   /* Benchmark view */
   .benchmark-controls {
     display:flex; gap:10px; flex-wrap:wrap; margin-bottom: 14px; align-items:center;
   }
   .chip {
-    background: var(--chip); color: var(--ink); border:1px solid var(--grid); border-radius: 999px;
-    padding: 6px 12px; font-size: 12px; cursor:pointer; user-select:none;
+    background: #fff; color: var(--ink); border:1px solid var(--grid); border-radius: 999px;
+    padding: 6px 14px; font-size: 12px; cursor:pointer; user-select:none; font-weight: 500;
   }
-  .chip.active { background: var(--accent); color: #0b1020; border-color: var(--accent); font-weight:600; }
+  .chip.active { background: var(--super-blue); color: #fff; border-color: var(--super-blue); font-weight:600; }
+  .chip:hover:not(.active) { border-color: var(--super-blue); color: var(--super-blue); }
   select, input[type=search] {
-    background: var(--panel-2); color: var(--ink); border: 1px solid var(--grid); border-radius: 8px;
-    padding: 7px 10px; font-size: 13px; min-width: 180px;
+    background: #fff; color: var(--ink); border: 1px solid var(--grid); border-radius: 8px;
+    padding: 7px 12px; font-size: 13px; min-width: 180px; font-family: inherit;
   }
-  label.lbl { font-size: 12px; color: var(--muted); margin-right: 4px; }
+  select:focus, input[type=search]:focus { outline: 2px solid var(--super-blue); outline-offset: -1px; border-color: var(--super-blue); }
+  label.lbl { font-size: 12px; color: var(--muted); margin-right: 4px; font-weight: 500; }
 
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--grid); }
-  th { color: var(--muted); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; cursor:pointer; }
-  th:hover { color: var(--ink); }
-  tbody tr:hover { background: rgba(110, 168, 255, 0.06); cursor:pointer; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--grid); }
+  th { color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; cursor:pointer; background: var(--wintermint); }
+  th:hover { color: var(--super-blue); }
+  tbody tr:hover { background: rgba(35, 108, 255, 0.05); cursor:pointer; }
   td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  td { color: var(--ink); }
   .rate-bar {
     display:inline-block; height: 6px; border-radius: 3px;
-    background: linear-gradient(90deg, var(--danger), var(--warn), var(--accent-2));
+    background: linear-gradient(90deg, var(--tomato), var(--honey-40), var(--super-blue));
     vertical-align: middle; margin-right: 8px;
   }
   .seg-badge {
-    display:inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight:600;
+    display:inline-block; padding: 3px 9px; border-radius: 4px; font-size: 11px; font-weight:600;
   }
-  .seg-Platform { background: rgba(110,168,255,.15); color: #9cc3ff; }
-  .seg-Transformation { background: rgba(126,240,194,.15); color: #7ef0c2; }
-  .seg-GBSG { background: rgba(255,184,107,.15); color: #ffb86b; }
-  .seg-CG { background: rgba(255,122,138,.15); color: #ff7a8a; }
-  .seg-Other { background: rgba(154,163,192,.15); color: #c0c8e0; }
+  .seg-Platform { background: rgba(35,108,255,.12); color: var(--super-blue); }
+  .seg-Transformation { background: rgba(59,216,94,.18); color: #1F8A3E; }
+  .seg-GBSG { background: rgba(249,199,65,.25); color: var(--honey-80); }
+  .seg-CG { background: rgba(255,92,55,.15); color: var(--tomato); }
+  .seg-Other { background: var(--wintermint); color: var(--muted); }
 
   /* Segment scorecards */
   .scorecards { display:grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 18px; }
   @media (max-width: 1100px) { .scorecards { grid-template-columns: repeat(2, 1fr); } }
   .scorecard {
-    background: var(--panel); border: 1px solid var(--grid); border-radius: 14px; padding: 16px;
-    border-top: 3px solid var(--accent);
+    background: var(--panel); border: 1px solid var(--grid); border-radius: 14px; padding: 18px;
+    border-top: 4px solid var(--super-blue);
+    box-shadow: 0 1px 3px rgba(0, 37, 74, 0.04);
   }
-  .scorecard .name { font-size: 14px; font-weight: 600; margin-bottom: 8px; }
-  .scorecard .rate { font-size: 28px; font-weight: 600; }
-  .scorecard .delta { font-size: 12px; margin-top: 2px; color: var(--muted); }
-  .scorecard .delta.up { color: var(--accent-2); }
-  .scorecard .delta.down { color: var(--warn); }
-  .scorecard .progress { margin-top: 12px; }
-  .scorecard .progress-label { font-size: 11px; color: var(--muted); display:flex; justify-content:space-between; margin-bottom: 4px; }
+  .scorecard .name { font-size: 14px; font-weight: 600; margin-bottom: 8px; color: var(--blueberry); }
+  .scorecard .rate { font-size: 32px; font-weight: 500; color: var(--blueberry); }
+  .scorecard .delta { font-size: 12px; margin-top: 2px; color: var(--muted); font-weight: 500; }
+  .scorecard .delta.up { color: #1F8A3E; }
+  .scorecard .delta.down { color: var(--honey-80); }
+  .scorecard .progress { margin-top: 14px; }
+  .scorecard .progress-label { font-size: 11px; color: var(--muted); display:flex; justify-content:space-between; margin-bottom: 4px; font-weight: 500; }
 
   .notes {
-    margin-top: 22px; padding: 12px 18px; background: var(--panel-2); border-left: 3px solid var(--muted);
-    border-radius: 8px; font-size: 12px; color: var(--muted);
+    margin-top: 22px; padding: 14px 18px; background: var(--tofu); border-left: 3px solid var(--muted);
+    border-radius: 8px; font-size: 12px; color: var(--muted); line-height: 1.55;
   }
   .notes b { color: var(--ink); }
 </style>
@@ -185,11 +234,15 @@
 
 <header>
   <div>
-    <div class="eyebrow">FY26 · M&amp;C Organization · Executive View</div>
+    <div class="wordmark">
+      <span class="marketing">MARKETING</span>
+      <span class="name">Craft Development &amp; Capabilities</span>
+    </div>
+    <div class="eyebrow">FY26 · Executive View</div>
     <h1>AI Adoption Dashboard</h1>
     <div class="sub">Weekly tracking · Aug 2025 – May 2026 · Latest: week of 5/11</div>
   </div>
-  <div class="sub">FY26 goal: <b style="color:var(--gold)">100% weekly adoption by EOFY</b></div>
+  <div class="sub">FY26 goal: <b>100% weekly adoption by EOFY</b></div>
 </header>
 
 <!-- ============ EXECUTIVE SUMMARY ============ -->
@@ -469,23 +522,23 @@ const LEADERS = [
    ========================================================= */
 
 const SEG_COLORS = {
-  "Platform":      "#6ea8ff",
-  "Transformation":"#7ef0c2",
-  "GBSG":          "#ffb86b",
-  "CG":            "#ff7a8a",
-  "Other":         "#c0c8e0"
+  "Platform":      "#236CFF",  /* super blue */
+  "Transformation":"#3BD85E",  /* kiwi-50 */
+  "GBSG":          "#F9C741",  /* honey-40 */
+  "CG":            "#FF5C37",  /* tomato */
+  "Other":         "#5A6B82"
 };
 const TOOL_COLORS = {
-  "Claude Chat":   "#7ef0c2",
-  "Claude Cowork": "#6ea8ff",
-  "Gemini":        "#ffb86b",
-  "ChatGPT":       "#c084fc"
+  "Claude Chat":   "#236CFF",  /* super blue — Anthropic / Intuit lead tool */
+  "Claude Cowork": "#81F2FE",  /* agave-30 */
+  "Gemini":        "#F9C741",  /* honey-40 */
+  "ChatGPT":       "#003E31"   /* spearmint-110 */
 };
 const JF_COLORS = {
-  "Comms":           "#6ea8ff",
-  "Marketing":       "#7ef0c2",
-  "Market Research": "#ffb86b",
-  "Marketing Ops":   "#ff7a8a"
+  "Comms":           "#236CFF",  /* super blue */
+  "Marketing":       "#3BD85E",  /* kiwi-50 */
+  "Market Research": "#F9C741",  /* honey-40 */
+  "Marketing Ops":   "#FF5C37"   /* tomato */
 };
 
 function fmtPct(v) { return v == null ? "—" : Math.round(v) + "%"; }
@@ -500,9 +553,9 @@ function avg(arr) {
   return xs.reduce((a,b)=>a+b,0)/xs.length;
 }
 
-Chart.defaults.color = "#9aa3c0";
-Chart.defaults.borderColor = "#2a335a";
-Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif";
+Chart.defaults.color = "#5A6B82";
+Chart.defaults.borderColor = "#DCE3ED";
+Chart.defaults.font.family = '"Avenir Next", "Avenir Next for Intuit", Avenir, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
 
 /* =========================================================
    EXECUTIVE SUMMARY
@@ -583,17 +636,17 @@ function renderOverview() {
     data:{
       labels: ROLLUP_WEEKS,
       datasets:[
-        { label:"Adoption %", data: ALL_RATE, borderColor:"#7ef0c2", backgroundColor:"rgba(126,240,194,.12)",
-          fill:true, tension:.35, pointRadius:4, pointHoverRadius:6, order: 2 },
+        { label:"Adoption %", data: ALL_RATE, borderColor:"#236CFF", backgroundColor:"rgba(35,108,255,.12)",
+          fill:true, tension:.35, pointRadius:4, pointHoverRadius:6, order: 2, borderWidth: 2.5 },
         { label:"FY26 goal (100%)", data: ROLLUP_WEEKS.map(()=>100),
-          borderColor:"#ffd66b", borderDash:[6,4], pointRadius:0, fill:false, order: 1 }
+          borderColor:"#F9C741", borderDash:[6,4], pointRadius:0, fill:false, order: 1, borderWidth: 2 }
       ]
     },
     options:{
       responsive:true, maintainAspectRatio:false,
       interaction:{ mode:"index", intersect:false },
       scales:{
-        y: { ticks:{ callback:v=>v+"%" }, grid:{ color:"#2a335a" }, max:105 }
+        y: { ticks:{ callback:v=>v+"%" }, grid:{ color:"#DCE3ED" }, max:105 }
       },
       plugins:{ legend:{ position:"bottom" } }
     }
@@ -619,7 +672,7 @@ function renderOverview() {
         { label:"Current adoption", data: Object.values(segLatest),
           backgroundColor: Object.keys(segLatest).map(s => SEG_COLORS[s]), borderRadius:8 },
         { label:"Gap to 100%", data: Object.values(segLatest).map(v => 100 - v),
-          backgroundColor: "rgba(255,214,107,.25)", borderRadius:8 }
+          backgroundColor: "#DCE3ED", borderRadius:8 }
       ]
     },
     options:{
@@ -642,7 +695,7 @@ function renderOverview() {
         tension:.35, pointRadius:2, spanGaps:true
       })).concat([{
         label:"Goal (100%)", data: LEADER_WEEKS.map(()=>100),
-        borderColor:"#ffd66b", borderDash:[4,4], pointRadius:0, fill:false
+        borderColor:"#F9C741", borderDash:[4,4], pointRadius:0, fill:false
       }])
     },
     options:{
@@ -707,11 +760,11 @@ function renderBenchmark() {
 
   // Distribution
   const bands = [
-    { label:"<50%",    min:0,   max:50,   color:"#ff7a8a" },
-    { label:"50-69%",  min:50,  max:70,   color:"#ffb86b" },
-    { label:"70-89%",  min:70,  max:90,   color:"#ffd66b" },
-    { label:"90-99%",  min:90,  max:100,  color:"#7ef0c2" },
-    { label:"100%",    min:100, max:101,  color:"#6ea8ff" }
+    { label:"<50%",    min:0,   max:50,   color:"#FF5C37" },
+    { label:"50-69%",  min:50,  max:70,   color:"#AC6500" },
+    { label:"70-89%",  min:70,  max:90,   color:"#F9C741" },
+    { label:"90-99%",  min:90,  max:100,  color:"#3BD85E" },
+    { label:"100%",    min:100, max:101,  color:"#236CFF" }
   ];
   const dist = bands.map(b => reporting.filter(l => {
     const r = l.rates[l.rates.length-1];
@@ -787,7 +840,7 @@ function renderTools() {
       datasets:[{
         data: latestUsersByTool,
         backgroundColor: toolNames.map(t => TOOL_COLORS[t]),
-        borderColor: "#131a30", borderWidth: 2
+        borderColor: "#FFFFFF", borderWidth: 2
       }]
     },
     options:{
@@ -817,7 +870,7 @@ function renderJF() {
         tension:.35, pointRadius:3, spanGaps:true
       })).concat([{
         label:"Goal (100%)", data: ROLLUP_WEEKS.map(()=>100),
-        borderColor:"#ffd66b", borderDash:[4,4], pointRadius:0, fill:false
+        borderColor:"#F9C741", borderDash:[4,4], pointRadius:0, fill:false
       }])
     },
     options:{
@@ -853,7 +906,7 @@ function renderJF() {
     data:{
       labels: jfNames,
       datasets:[
-        { label:"Audience", data: latestSize, backgroundColor: "#2a335a" },
+        { label:"Audience", data: latestSize, backgroundColor: "#00254A" },
         { label:"Active users", data: latestUsers, backgroundColor: jfNames.map(j => JF_COLORS[j]) }
       ]
     },
@@ -968,7 +1021,7 @@ function renderLeaderChart(name) {
           backgroundColor: SEG_COLORS[l.seg] + "33",
           fill:true, tension:.35, pointRadius:4, spanGaps:true },
         { label: "Goal (100%)", data: LEADER_WEEKS.map(()=>100),
-          borderColor:"#ffd66b", borderDash:[4,4], pointRadius:0, fill:false }
+          borderColor:"#F9C741", borderDash:[4,4], pointRadius:0, fill:false }
       ]
     },
     options:{
